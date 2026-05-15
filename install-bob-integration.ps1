@@ -3,7 +3,8 @@
 
 param(
     [string]$BobDirectory = "",
-    [switch]$Help
+    [switch]$Help,
+    [switch]$NonInteractive
 )
 
 $ErrorActionPreference = "Stop"
@@ -129,7 +130,13 @@ if (Test-Path $sourceScanner) {
 # Step 5: Optional git hooks installation
 Write-Host "`n[5/6] Git hooks installation (optional)..." -ForegroundColor Yellow
 
-$installHooks = Read-Host "   Do you want to install git pre-push hooks? (y/n)"
+if ($NonInteractive) {
+    Write-Host "   ⊘ Skipped git hooks installation (non-interactive mode)" -ForegroundColor Gray
+    $installHooks = "n"
+} else {
+    $installHooks = Read-Host "   Do you want to install git pre-push hooks? (y/n)"
+}
+
 if ($installHooks -eq "y" -or $installHooks -eq "Y") {
     $gitDir = Join-Path (Get-Location) ".git"
     if (Test-Path $gitDir) {
@@ -208,7 +215,9 @@ if ($verified) {
     Write-Host ""
 }
 
-Write-Host "Press any key to exit..."
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+if (-not $NonInteractive) {
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
 
 # Made with Bob

@@ -51,8 +51,8 @@ echo.
 echo [2/5] Running PowerShell installer...
 echo.
 
-REM Run the PowerShell installer
-powershell -ExecutionPolicy Bypass -File "%~dp0install-bob-integration.ps1"
+REM Run the PowerShell installer in non-interactive mode
+powershell -ExecutionPolicy Bypass -File "%~dp0install-bob-integration.ps1" -NonInteractive
 
 if %errorlevel% neq 0 (
     echo.
