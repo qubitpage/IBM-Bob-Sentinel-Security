@@ -361,12 +361,13 @@ app.post('/api/scan', async (req, res) => {
     // Ensure cache dir exists
     await fs.mkdir(CACHE_DIR, { recursive: true });
 
-    // Run scanner
+    // Run scanner - use execFile to avoid shell injection
     let output = '';
     try {
-      output = execSync(`node "${scannerPath}" "${resolvedDir}"`, {
+      const { execFileSync } = require('child_process');
+      output = execFileSync('node', [scannerPath, resolvedDir], {
         encoding: 'utf8',
-        timeout: 60000,
+        timeout: 120000,
         cwd: path.join(__dirname, '../..'),
         stdio: ['pipe', 'pipe', 'pipe']
       });
