@@ -1,262 +1,244 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Dashboard from './components/Dashboard';
 import VulnerabilityFeed from './components/VulnerabilityFeed';
 import CodeDiffViewer from './components/CodeDiffViewer';
 import HealthScore from './components/HealthScore';
+import FolderBrowser from './components/FolderBrowser';
 import './App.css';
 
-/**
- * Main Application Component
- * Bob Sentinel Security Dashboard
- */
 function App() {
   const [scanData, setScanData] = useState(null);
   const [selectedVuln, setSelectedVuln] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
+  const [scanLog, setScanLog] = useState('');
+  const [showLog, setShowLog] = useState(false);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState({ severity: '', category: '' });
+  const [scanDir, setScanDir] = useState('');
+  const [activeTab, setActiveTab] = useState('overview');
+  const [showBrowser, setShowBrowser] = useState(false);
 
   const API_BASE = 'http://localhost:3000/api';
 
-  /**
-   * Fetch scan results on component mount
-   */
-  useEffect(() => {
-    fetchScanResults();
-  }, []);
-
-  /**
-   * Fetch scan results from API
-   */
-  const fetchScanResults = async () => {
+  const fetchScanResults = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`${API_BASE}/scan-results`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch scan results');
-      }
-      
+      if (!response.ok) throw new Error('No scan results found. Run a scan first.');
       const data = await response.json();
       setScanData(data);
       setError(null);
     } catch (err) {
       setError(err.message);
-      console.error('Error fetching scan results:', err);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => { fetchScanResults(); }, [fetchScanResults]);
+
+  const runScan = async () => {
+    try {
+      setScanning(true);
+      setScanLog('Starting scan...\n');
+      setShowLog(true);
+      setActiveTab('log');
+      const body = scanDir ? { directory: scanDir } : {};
+      const response = await fetch(`${API_BASE}/scan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await response.json();
+      if (data.success) {
+        setScanLog(data.log || 'Scan completed successfully.');
+        setScanData(data.results);
+        setError(null);
+      } else {
+        setScanLog(`Error: ${data.message}\n${data.log || ''}`);
+      }
+    } catch (err) {
+      setScanLog(`Scan failed: ${err.message}`);
+    } finally {
+      setScanning(false);
+    }
   };
 
-  /**
-   * Handle vulnerability selection
-   */
-  const handleSelectVulnerability = (vuln) => {
-    setSelectedVuln(vuln);
-  };
-
-  /**
-   * Handle back to list
-   */
-  const handleBackToList = () => {
-    setSelectedVuln(null);
-  };
-
-  /**
-   * Apply filters
-   */
   const getFilteredVulnerabilities = () => {
     if (!scanData) return [];
-    
     let filtered = scanData.vulnerabilities;
-    
-    if (filter.severity) {
-      filtered = filtered.filter(v => v.severity === filter.severity);
-    }
-    
-    if (filter.category) {
-      filtered = filtered.filter(v => v.category === filter.category);
-    }
-    
+    if (filter.severity) filtered = filtered.filter(v => v.severity === filter.severity);
+    if (filter.category) filtered = filtered.filter(v => v.category === filter.category);
     return filtered;
   };
 
-  /**
-   * Render loading state
-   */
-  if (loading) {
+  const severityCounts = scanData ? {
+    CRITICAL: scanData.summary?.critical || 0,
+    HIGH: scanData.summary?.high || 0,
+    MEDIUM: scanData.summary?.medium || 0,
+    LOW: scanData.summary?.low || 0,
+  } : {};
+
+  if (selectedVuln) {
     return (
-      <div className="app loading">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading scan results...</p>
-        </div>
+      <div className="app">
+        <CodeDiffViewer vulnerability={selectedVuln} onBack={() => setSelectedVuln(null)} />
       </div>
     );
   }
 
-  /**
-   * Render error state
-   */
-  if (error) {
-    return (
-      <div className="app error">
-        <div className="error-container">
-          <h2>⚠️ Error Loading Scan Results</h2>
-          <p>{error}</p>
-          <button onClick={fetchScanResults} className="btn-retry">
-            Retry
-          </button>
-          <div className="error-help">
-            <h3>Troubleshooting:</h3>
-            <ul>
-              <li>Make sure the backend server is running on port 3000</li>
-              <li>Run: <code>cd dashboard/backend && npm start</code></li>
-              <li>Ensure scan results exist: <code>node cli/scanner.js sample-vulnerable-app</code></li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /**
-   * Render main dashboard
-   */
   return (
     <div className="app">
-      {/* Header */}
-      <header className="app-header">
-        <div className="header-content">
-          <div className="logo">
-            <span className="logo-icon">🛡️</span>
-            <div className="logo-text">
-              <h1>Bob Sentinel</h1>
-              <p className="tagline">Pre-Flight Security Scanner</p>
+      {/* Top Bar */}
+      <header className="topbar">
+        <div className="topbar-left">
+          <div className="brand">
+            <div className="brand-icon">S</div>
+            <div>
+              <div className="brand-name">Bob Sentinel</div>
+              <div className="brand-sub">Security Scanner</div>
             </div>
           </div>
-          
-          <div className="header-actions">
-            <button 
-              onClick={fetchScanResults} 
-              className="btn-refresh"
-              title="Refresh scan results"
-            >
-              🔄 Refresh
+        </div>
+        <div className="topbar-center">
+          <div className="scan-bar">
+            <button className="browse-btn" onClick={() => setShowBrowser(!showBrowser)} title="Browse folders">
+              {showBrowser ? '✕' : '📁'}
             </button>
-            <a 
-              href={`${API_BASE}/export?format=json`}
-              download="scan-results.json"
-              className="btn-export"
-              title="Export results"
-            >
-              📥 Export
-            </a>
+            <input
+              type="text"
+              className="scan-input"
+              placeholder="Directory to scan (leave empty for sample app)..."
+              value={scanDir}
+              onChange={e => setScanDir(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !scanning && runScan()}
+            />
+            <button className="scan-btn" onClick={runScan} disabled={scanning}>
+              {scanning ? 'Scanning...' : 'Run Scan'}
+            </button>
           </div>
+        </div>
+        <div className="topbar-right">
+          <button className="icon-btn" onClick={fetchScanResults} title="Refresh results">
+            Refresh
+          </button>
+          <a href={`${API_BASE}/export?format=json`} download className="icon-btn" title="Export JSON">
+            Export
+          </a>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="app-main">
+      <div className="layout">
+        {showBrowser && (
+          <FolderBrowser
+            onSelect={(dir) => { setScanDir(dir); setShowBrowser(false); }}
+            onClose={() => setShowBrowser(false)}
+          />
+        )}
         {/* Sidebar */}
         <aside className="sidebar">
-          <HealthScore data={scanData} />
-          
-          <div className="quick-stats">
-            <h3>Quick Stats</h3>
-            <div className="stat-item">
-              <span className="stat-label">Files Scanned</span>
-              <span className="stat-value">{scanData.total_files_scanned}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Total Issues</span>
-              <span className="stat-value">{scanData.summary.total}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Files Affected</span>
-              <span className="stat-value">{scanData.summary.files_with_issues}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Scan Duration</span>
-              <span className="stat-value">{scanData.scan_duration_ms}ms</span>
-            </div>
-          </div>
+          {scanData && <HealthScore data={scanData} />}
 
-          {/* Filters */}
-          <div className="filters">
-            <h3>Filters</h3>
-            
-            <div className="filter-group">
-              <label>Severity</label>
-              <select 
-                value={filter.severity} 
-                onChange={(e) => setFilter({...filter, severity: e.target.value})}
-              >
-                <option value="">All</option>
-                <option value="CRITICAL">Critical</option>
-                <option value="HIGH">High</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="LOW">Low</option>
-              </select>
+          {scanData && (
+            <div className="sidebar-card">
+              <div className="card-title">Quick Stats</div>
+              <div className="stat-row"><span>Files Scanned</span><span className="stat-num">{scanData.total_files_scanned}</span></div>
+              <div className="stat-row"><span>Total Issues</span><span className="stat-num">{scanData.summary.total}</span></div>
+              <div className="stat-row"><span>Files Affected</span><span className="stat-num">{scanData.summary.files_with_issues}</span></div>
+              <div className="stat-row"><span>Scan Time</span><span className="stat-num">{scanData.scan_duration_ms}ms</span></div>
             </div>
+          )}
 
-            <div className="filter-group">
-              <label>Category</label>
-              <select 
-                value={filter.category} 
-                onChange={(e) => setFilter({...filter, category: e.target.value})}
-              >
-                <option value="">All</option>
-                <option value="secrets">Secrets</option>
-                <option value="injection">Injection</option>
-                <option value="auth">Authentication</option>
-                <option value="config">Configuration</option>
-                <option value="crypto">Cryptography</option>
-              </select>
+          <div className="sidebar-card">
+            <div className="card-title">Filters</div>
+            <label className="filter-label">Severity</label>
+            <div className="filter-pills">
+              {['CRITICAL','HIGH','MEDIUM','LOW'].map(s => (
+                <button key={s} className={`pill ${s.toLowerCase()} ${filter.severity === s ? 'active' : ''}`}
+                  onClick={() => setFilter({...filter, severity: filter.severity === s ? '' : s})}>
+                  {s} {severityCounts[s] !== undefined ? `(${severityCounts[s]})` : ''}
+                </button>
+              ))}
             </div>
-
+            <label className="filter-label" style={{marginTop: 12}}>Category</label>
+            <select className="filter-select" value={filter.category}
+              onChange={e => setFilter({...filter, category: e.target.value})}>
+              <option value="">All Categories</option>
+              <option value="secrets">Secrets</option>
+              <option value="injection">Injection</option>
+              <option value="auth">Authentication</option>
+              <option value="config">Configuration</option>
+              <option value="crypto">Cryptography</option>
+            </select>
             {(filter.severity || filter.category) && (
-              <button 
-                onClick={() => setFilter({ severity: '', category: '' })}
-                className="btn-clear-filters"
-              >
-                Clear Filters
-              </button>
+              <button className="clear-btn" onClick={() => setFilter({severity:'',category:''})}>Clear Filters</button>
             )}
           </div>
         </aside>
 
-        {/* Content Area */}
-        <section className="content">
-          {selectedVuln ? (
-            <CodeDiffViewer 
-              vulnerability={selectedVuln} 
-              onBack={handleBackToList}
-            />
+        {/* Main Content */}
+        <main className="main-content">
+          {/* Tabs */}
+          <div className="tabs">
+            <button className={`tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
+            <button className={`tab ${activeTab === 'issues' ? 'active' : ''}`} onClick={() => setActiveTab('issues')}>
+              Issues {scanData ? `(${scanData.summary.total})` : ''}
+            </button>
+            <button className={`tab ${activeTab === 'log' ? 'active' : ''}`} onClick={() => setActiveTab('log')}>
+              Scan Log {scanLog ? '*' : ''}
+            </button>
+          </div>
+
+          {loading && !scanData ? (
+            <div className="empty-state">
+              <div className="spinner"></div>
+              <p>Loading scan results...</p>
+            </div>
+          ) : error && !scanData ? (
+            <div className="empty-state">
+              <div className="empty-icon">!</div>
+              <h3>No Scan Results</h3>
+              <p>{error}</p>
+              <p style={{color:'var(--text-muted)', marginTop: 8}}>Click "Run Scan" above to scan the sample vulnerable app, or enter a directory path.</p>
+              <button className="action-btn" onClick={runScan} style={{marginTop: 16}}>Run First Scan</button>
+            </div>
           ) : (
             <>
-              <Dashboard data={scanData} />
-              <VulnerabilityFeed 
-                vulnerabilities={getFilteredVulnerabilities()}
-                onSelect={handleSelectVulnerability}
-                filter={filter}
-              />
+              {activeTab === 'overview' && scanData && <Dashboard data={scanData} />}
+              {activeTab === 'issues' && scanData && (
+                <VulnerabilityFeed
+                  vulnerabilities={getFilteredVulnerabilities()}
+                  onSelect={setSelectedVuln}
+                  filter={filter}
+                />
+              )}
+              {activeTab === 'log' && (
+                <div className="log-panel">
+                  <div className="log-header">
+                    <span>Scan Output</span>
+                    <div>
+                      <button className="action-btn small" onClick={runScan} disabled={scanning}>
+                        {scanning ? 'Scanning...' : 'Rescan'}
+                      </button>
+                      <button className="action-btn small secondary" onClick={() => setScanLog('')} style={{marginLeft: 8}}>Clear</button>
+                    </div>
+                  </div>
+                  <pre className="log-output">{scanLog || 'No scan log yet. Click "Run Scan" to start.'}</pre>
+                </div>
+              )}
             </>
           )}
-        </section>
-      </main>
+        </main>
+      </div>
 
-      {/* Footer */}
-      <footer className="app-footer">
-        <p>
-          Last scan: {new Date(scanData.scan_timestamp).toLocaleString()} | 
-          Repository: {scanData.repository}
-        </p>
-      </footer>
+      {scanData && (
+        <footer className="app-footer">
+          Last scan: {new Date(scanData.scan_timestamp).toLocaleString()} | {scanData.repository}
+        </footer>
+      )}
     </div>
   );
 }
 
 export default App;
-
-// Made with Bob

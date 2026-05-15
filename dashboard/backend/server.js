@@ -306,15 +306,87 @@ app.get('/api/categories', async (req, res) => {
 });
 
 /**
+ * GET /api/browse
+ * Browse directories for folder selection
+ * Query: dir (base directory to list)
+ */
+app.get('/api/browse', async (req, res) => {
+  try {
+    const baseDir = req.query.dir || path.join(__dirname, '../..');
+    const resolvedDir = path.resolve(baseDir);
+
+    // Security: prevent traversal above reasonable paths
+    const dirStat = await fs.stat(resolvedDir).catch(() => null);
+    if (!dirStat || !dirStat.isDirectory()) {
+      return res.status(400).json({ error: 'Invalid directory', path: resolvedDir });
+    }
+
+    const entries = await fs.readdir(resolvedDir, { withFileTypes: true });
+    const folders = entries
+      .filter(e => e.isDirectory() && !e.name.startsWith('.') && e.name !== 'node_modules' && e.name !== '__pycache__')
+      .map(e => ({
+        name: e.name,
+        path: path.join(resolvedDir, e.name).replace(/\\/g, '/')
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    res.json({
+      current: resolvedDir.replace(/\\/g, '/'),
+      parent: path.dirname(resolvedDir).replace(/\\/g, '/'),
+      folders
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Browse failed', message: error.message });
+  }
+});
+
+/**
  * POST /api/scan
- * Trigger a new security scan (placeholder for future implementation)
+ * Trigger a new security scan
  */
 app.post('/api/scan', async (req, res) => {
-  res.status(501).json({
-    error: 'Not implemented',
-    message: 'Scan triggering will be implemented in future version',
-    suggestion: 'Use CLI tool: bob-sentinel scan <directory>'
-  });
+  const targetDir = req.body.directory || path.join(__dirname, '../../sample-vulnerable-app');
+  const scannerPath = path.join(__dirname, '../../cli/scanner.js');
+
+  try {
+    const { execSync } = require('child_process');
+    const resolvedDir = path.resolve(targetDir);
+
+    // Validate the directory exists
+    const dirStat = await fs.stat(resolvedDir).catch(() => null);
+    if (!dirStat || !dirStat.isDirectory()) {
+      return res.status(400).json({ success: false, error: 'Invalid directory', message: `Directory not found: ${resolvedDir}` });
+    }
+
+    // Ensure cache dir exists
+    await fs.mkdir(CACHE_DIR, { recursive: true });
+
+    // Run scanner
+    let output = '';
+    try {
+      output = execSync(`node "${scannerPath}" "${resolvedDir}"`, {
+        encoding: 'utf8',
+        timeout: 60000,
+        cwd: path.join(__dirname, '../..'),
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+    } catch (execErr) {
+      // Scanner exits non-zero when vulnerabilities found - that's expected
+      output = execErr.stdout || execErr.stderr || execErr.message;
+    }
+
+    // Read fresh results
+    const data = await readCacheFile('vulnerabilities.json');
+    res.json({ success: true, message: 'Scan completed', log: output, results: data });
+  } catch (error) {
+    // Even on non-zero exit, scanner may have written results
+    try {
+      const data = await readCacheFile('vulnerabilities.json');
+      res.json({ success: true, message: 'Scan completed with findings', log: error.stdout || error.message, results: data });
+    } catch (e2) {
+      res.status(500).json({ success: false, error: 'Scan failed', message: error.message, log: error.stdout || '' });
+    }
+  }
 });
 
 /**
