@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bob Sentinel Dashboard Launcher</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 3rem;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        h1 {
+            margin-bottom: 1rem;
+            font-size: 2.5rem;
+        }
+        .status {
+            margin: 2rem 0;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .status-indicator.online {
+            background: #4ade80;
+            box-shadow: 0 0 10px #4ade80;
+        }
+        .status-indicator.offline {
+            background: #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+        }
+        .btn {
+            display: inline-block;
+            padding: 1rem 2rem;
+            margin: 0.5rem;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        .btn.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .info {
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Bob Sentinel Dashboard</h1>
+        <p>Security Scanner for IBM Bob</p>
+        
+        <div class="status">
+            <div class="status-item">
+                <span>Backend API (Port 3000)</span>
+                <span id="backend-status">
+                    <span class="loading"></span>
+                </span>
+            </div>
+            <div class="status-item">
+                <span>Frontend (Port 5173)</span>
+                <span id="frontend-status">
+                    <span class="loading"></span>
+                </span>
+            </div>
+        </div>
+
+        <div id="actions" style="display: none;">
+            <a href="http://localhost:5173" target="_blank" class="btn primary">
+                🚀 Open Dashboard
+            </a>
+            <a href="http://localhost:3000/api/health" target="_blank" class="btn">
+                🔍 Check API Health
+            </a>
+        </div>
+
+        <div class="info">
+            <p><strong>Quick Start:</strong></p>
+            <p>Backend: <code>http://localhost:3000</code></p>
+            <p>Frontend: <code>http://localhost:5173</code></p>
+        </div>
+    </div>
+
+    <script>
+        async function checkServices() {
+            // Check backend
+            try {
+                const backendResponse = await fetch('http://localhost:3000/api/health');
+                const backendData = await backendResponse.json();
+                document.getElementById('backend-status').innerHTML = 
+                    `<span class="status-indicator online"></span> Online`;
+            } catch (error) {
+                document.getElementById('backend-status').innerHTML = 
+                    `<span class="status-indicator offline"></span> Offline`;
+            }
+
+            // Check frontend
+            try {
+                const frontendResponse = await fetch('http://localhost:5173');
+                document.getElementById('frontend-status').innerHTML = 
+                    `<span class="status-indicator online"></span> Online`;
+            } catch (error) {
+                document.getElementById('frontend-status').innerHTML = 
+                    `<span class="status-indicator offline"></span> Offline`;
+            }
+
+            // Show action buttons
+            document.getElementById('actions').style.display = 'block';
+        }
+
+        // Check services on load
+        checkServices();
+
+        // Recheck every 5 seconds
+        setInterval(checkServices, 5000);
+    </script>
+</body>
+</html>

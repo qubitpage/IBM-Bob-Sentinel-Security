@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Bob Sentinel Installer
+Comment=Install Bob Sentinel security scanner for IBM Bob
+Exec=bash -c "cd '%k' && ./install.sh; read -p 'Press Enter to close...'"
+Icon=security-high
+Terminal=true
+Categories=Development;Security;
+Keywords=security;scanner;vulnerability;ibm;bob;
+StartupNotify=true
+Path=%k

@@ -1,0 +1,28 @@
+{
+  "name": "sample-vulnerable-app",
+  "version": "1.0.0",
+  "description": "Sample application with intentional security vulnerabilities for Bob Sentinel demonstration",
+  "main": "backend/api.js",
+  "scripts": {
+    "start": "node backend/api.js",
+    "test": "echo \"No tests - this is a vulnerable demo app\" && exit 0"
+  },
+  "keywords": [
+    "security",
+    "demo",
+    "vulnerable",
+    "bob-sentinel"
+  ],
+  "author": "Bob Sentinel Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "axios": "^1.6.0",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

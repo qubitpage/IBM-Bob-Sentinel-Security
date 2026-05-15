@@ -1,0 +1,200 @@
+/* HealthScore Component Styles */
+.health-score-container {
+  background: rgba(26, 31, 58, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.health-score-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.health-score-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.health-score-header p {
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+.health-score-circle {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 2rem;
+}
+
+.health-score-svg {
+  transform: rotate(-90deg);
+}
+
+.health-score-bg {
+  fill: none;
+  stroke: rgba(42, 47, 74, 0.5);
+  stroke-width: 12;
+}
+
+.health-score-progress {
+  fill: none;
+  stroke-width: 12;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s ease-in-out, stroke 0.3s ease;
+}
+
+.health-score-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.health-score-value {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.health-score-label {
+  font-size: 0.875rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.health-score-status {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-badge.excellent {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status-badge.good {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.status-badge.fair {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-badge.poor {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.status-badge.critical {
+  background: #fecaca;
+  color: #991b1b;
+}
+
+.health-breakdown {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 1.5rem;
+}
+
+.health-breakdown h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 1rem;
+}
+
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.breakdown-item:last-child {
+  border-bottom: none;
+}
+
+.breakdown-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.severity-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.severity-dot.critical {
+  background: #ff4757;
+  box-shadow: 0 0 10px #ff4757;
+}
+
+.severity-dot.high {
+  background: #ff6348;
+  box-shadow: 0 0 10px #ff6348;
+}
+
+.severity-dot.medium {
+  background: #ffa502;
+  box-shadow: 0 0 10px #ffa502;
+}
+
+.severity-dot.low {
+  background: #26de81;
+  box-shadow: 0 0 10px #26de81;
+}
+
+.breakdown-value {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.breakdown-count {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.breakdown-penalty {
+  font-size: 0.875rem;
+  color: #94a3b8;
+}
+
+@media (max-width: 768px) {
+  .health-score-circle {
+    width: 160px;
+    height: 160px;
+  }
+
+  .health-score-value {
+    font-size: 2.5rem;
+  }
+}
+
+/* Made with Bob */
