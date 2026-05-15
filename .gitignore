@@ -28,6 +28,14 @@ build/
 
 # OS
 Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+
+# Artifacts from terminal typos
+-w
+console.log*)
 desktop.ini
 
 # Cache
