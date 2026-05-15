@@ -1,0 +1,33 @@
+═══════════════════════════════════════════════════════════════
+  HOW TO CONVERT PITCH_DECK.HTML TO PDF
+═══════════════════════════════════════════════════════════════
+
+The pitch deck HTML file is now open in your browser.
+
+STEPS TO CREATE PDF:
+
+1. Press Ctrl+P (or Cmd+P on Mac) to open Print dialog
+
+2. Configure these settings:
+   ✓ Destination: "Save as PDF" or "Microsoft Print to PDF"
+   ✓ Layout: Landscape
+   ✓ Paper size: A4 or Letter
+   ✓ Margins: None (or Minimum)
+   ✓ Scale: 100%
+   ✓ Background graphics: ON (IMPORTANT!)
+   ✓ Headers and footers: OFF
+
+3. Click "Save" or "Print"
+
+4. Save as: Bob_Sentinel_Pitch_Deck.pdf
+
+═══════════════════════════════════════════════════════════════
+
+RESULT: Professional 11-slide pitch deck with:
+- Proper gradient backgrounds
+- No text overflow
+- Perfect spacing
+- High contrast design
+- Ready for presentation
+
+═══════════════════════════════════════════════════════════════

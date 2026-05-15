@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bob Sentinel - Pitch Deck</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0e27;
+            color: #ffffff;
+        }
+
+        .slide {
+            width: 1920px;
+            height: 1080px;
+            padding: 80px;
+            page-break-after: always;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .slide-number {
+            position: absolute;
+            bottom: 40px;
+            right: 80px;
+            font-size: 24px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        h1 {
+            font-size: 96px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 40px;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-size: 72px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 60px;
+            line-height: 1.2;
+        }
+
+        h3 {
+            font-size: 48px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 30px;
+            line-height: 1.3;
+        }
+
+        p {
+            font-size: 36px;
+            line-height: 1.6;
+            color: #e0e0e0;
+            margin-bottom: 30px;
+        }
+
+        .subtitle {
+            font-size: 48px;
+            color: #a0a0a0;
+            margin-bottom: 60px;
+            line-height: 1.4;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+            margin-top: 40px;
+        }
+
+        .feature-box {
+            background: rgba(102, 126, 234, 0.1);
+            border: 2px solid #667eea;
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-box h3 {
+            font-size: 42px;
+            margin-bottom: 20px;
+        }
+
+        .feature-box p {
+            font-size: 30px;
+            line-height: 1.5;
+            margin-bottom: 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 40px;
+            background: rgba(102, 126, 234, 0.15);
+            border-radius: 20px;
+            border: 2px solid #667eea;
+        }
+
+        .stat-number {
+            font-size: 96px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 32px;
+            color: #e0e0e0;
+            line-height: 1.3;
+        }
+
+        ul {
+            list-style: none;
+            margin-top: 40px;
+        }
+
+        li {
+            font-size: 36px;
+            line-height: 1.8;
+            color: #e0e0e0;
+            padding-left: 60px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: 700;
+            font-size: 42px;
+        }
+
+        .highlight {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .logo {
+            font-size: 120px;
+            margin-bottom: 40px;
+        }
+
+        .cta {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 60px;
+            border-radius: 15px;
+            font-size: 42px;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 60px;
+            text-decoration: none;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .timeline {
+            margin-top: 60px;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 40px;
+        }
+
+        .timeline-number {
+            font-size: 72px;
+            font-weight: 700;
+            color: #667eea;
+            min-width: 120px;
+        }
+
+        .timeline-content h3 {
+            font-size: 42px;
+            margin-bottom: 15px;
+        }
+
+        .timeline-content p {
+            font-size: 32px;
+            margin-bottom: 0;
+        }
+
+        @media print {
+            .slide {
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Slide 1: Title -->
+<div class="slide">
+    <div class="logo">🛡️</div>
+    <h1>Bob Sentinel</h1>
+    <p class="subtitle">Real-time Security Scanner for IBM Bob<br>Detect Vulnerabilities Before They Reach Production</p>
+    <p style="font-size: 32px; color: #a0a0a0; margin-top: 80px;">IBM Bob Hackathon 2026</p>
+    <div class="slide-number">1</div>
+</div>
+
+<!-- Slide 2: The Problem -->
+<div class="slide">
+    <h2>The Problem</h2>
+    <div class="feature-grid">
+        <div class="feature-box">
+            <h3>🔴 Security Breaches</h3>
+            <p>Vulnerabilities slip into production code, causing data breaches and financial losses</p>
+        </div>
+        <div class="feature-box">
+            <h3>⏰ Late Detection</h3>
+            <p>Security issues discovered after deployment are 100x more expensive to fix</p>
+        </div>
+        <div class="feature-box">
+            <h3>👨‍💻 Developer Burden</h3>
+            <p>Manual security reviews slow down development and miss critical issues</p>
+        </div>
+        <div class="feature-box">
+            <h3>🔧 Tool Fragmentation</h3>
+            <p>Multiple disconnected security tools create workflow friction</p>
+        </div>
+    </div>
+    <div class="slide-number">2</div>
+</div>
+
+<!-- Slide 3: The Solution -->
+<div class="slide">
+    <h2>The Solution</h2>
+    <p style="font-size: 42px; margin-bottom: 60px;">Bob Sentinel integrates directly into IBM Bob's workflow</p>
+    <ul>
+        <li><span class="highlight">Real-time scanning</span> as you code with IBM Bob</li>
+        <li><span class="highlight">15+ vulnerability types</span> detected instantly</li>
+        <li><span class="highlight">Beautiful dashboard</span> with actionable insights</li>
+        <li><span class="highlight">Git hook integration</span> blocks vulnerable code</li>
+        <li><span class="highlight">One-click installation</span> across all platforms</li>
+        <li><span class="highlight">Zero configuration</span> required to start</li>
+    </ul>
+    <div class="slide-number">3</div>
+</div>
+
+<!-- Slide 4: Key Features -->
+<div class="slide">
+    <h2>Key Features</h2>
+    <div class="feature-grid">
+        <div class="feature-box">
+            <h3>⚡ Lightning Fast</h3>
+            <p>Scans entire codebases in milliseconds using optimized regex patterns</p>
+        </div>
+        <div class="feature-box">
+            <h3>🎯 Accurate Detection</h3>
+            <p>15+ vulnerability types: SQL injection, XSS, hardcoded secrets, weak crypto</p>
+        </div>
+        <div class="feature-box">
+            <h3>📊 Visual Dashboard</h3>
+            <p>Real-time health scores, severity breakdown, and code diff viewer</p>
+        </div>
+        <div class="feature-box">
+            <h3>🔗 Seamless Integration</h3>
+            <p>Custom IBM Bob mode with chat commands and automatic scanning</p>
+        </div>
+    </div>
+    <div class="slide-number">4</div>
+</div>
+
+<!-- Slide 5: How It Works -->
+<div class="slide">
+    <h2>How It Works</h2>
+    <div class="timeline">
+        <div class="timeline-item">
+            <div class="timeline-number">1</div>
+            <div class="timeline-content">
+                <h3>Install in Seconds</h3>
+                <p>Double-click installer auto-detects IBM Bob and sets up everything</p>
+            </div>
+        </div>
+        <div class="timeline-item">
+            <div class="timeline-number">2</div>
+            <div class="timeline-content">
+                <h3>Code with Confidence</h3>
+                <p>IBM Bob scans your code in real-time as you write it</p>
+            </div>
+        </div>
+        <div class="timeline-item">
+            <div class="timeline-number">3</div>
+            <div class="timeline-content">
+                <h3>Review Findings</h3>
+                <p>Beautiful dashboard shows vulnerabilities with fix suggestions</p>
+            </div>
+        </div>
+        <div class="timeline-item">
+            <div class="timeline-number">4</div>
+            <div class="timeline-content">
+                <h3>Deploy Safely</h3>
+                <p>Git hooks block pushes with critical issues automatically</p>
+            </div>
+        </div>
+    </div>
+    <div class="slide-number">5</div>
+</div>
+
+<!-- Slide 6: Technical Excellence -->
+<div class="slide">
+    <h2>Technical Excellence</h2>
+    <div class="stats-grid">
+        <div class="stat-box">
+            <div class="stat-number">50+</div>
+            <div class="stat-label">Files Created</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number">11K+</div>
+            <div class="stat-label">Lines of Code</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number">15+</div>
+            <div class="stat-label">Vulnerability Types</div>
+        </div>
+    </div>
+    <ul style="margin-top: 80px;">
+        <li>Production-ready code with <span class="highlight">zero mocks</span></li>
+        <li>Real pattern matching, <span class="highlight">no AI dependencies</span></li>
+        <li>Cross-platform support: <span class="highlight">Windows, Linux, macOS</span></li>
+        <li>Comprehensive documentation: <span class="highlight">7 guides, 3,000+ lines</span></li>
+    </ul>
+    <div class="slide-number">6</div>
+</div>
+
+<!-- Slide 7: Built with IBM Bob -->
+<div class="slide">
+    <h2>Built 100% with IBM Bob</h2>
+    <p style="font-size: 42px; margin-bottom: 60px;">This entire project was created through conversation with IBM Bob</p>
+    <div class="feature-grid">
+        <div class="feature-box">
+            <h3>🤖 AI-Assisted</h3>
+            <p>Complete project built in single conversation session</p>
+        </div>
+        <div class="feature-box">
+            <h3>📝 Documented</h3>
+            <p>BUILT_WITH_BOB.md proves AI-assisted development</p>
+        </div>
+        <div class="feature-box">
+            <h3>🎯 Iterative</h3>
+            <p>User feedback incorporated at every step</p>
+        </div>
+        <div class="feature-box">
+            <h3>✅ Verified</h3>
+            <p>Scanned with own security scanner before publication</p>
+        </div>
+    </div>
+    <div class="slide-number">7</div>
+</div>
+
+<!-- Slide 8: Impact & Benefits -->
+<div class="slide">
+    <h2>Impact & Benefits</h2>
+    <div class="feature-grid">
+        <div class="feature-box">
+            <h3>💰 Cost Savings</h3>
+            <p>Catch vulnerabilities early, reduce fix costs by 100x</p>
+        </div>
+        <div class="feature-box">
+            <h3>⚡ Faster Development</h3>
+            <p>No context switching, security checks in your workflow</p>
+        </div>
+        <div class="feature-box">
+            <h3>🛡️ Better Security</h3>
+            <p>Continuous scanning prevents security debt accumulation</p>
+        </div>
+        <div class="feature-box">
+            <h3>😊 Developer Joy</h3>
+            <p>Beautiful UI, instant feedback, actionable insights</p>
+        </div>
+    </div>
+    <div class="slide-number">8</div>
+</div>
+
+<!-- Slide 9: Demo & Repository -->
+<div class="slide">
+    <h2>See It In Action</h2>
+    <div class="feature-box" style="margin-top: 60px; padding: 60px;">
+        <h3 style="font-size: 48px; margin-bottom: 40px;">🔗 GitHub Repository</h3>
+        <p style="font-size: 42px; color: #667eea; font-weight: 600; margin-bottom: 40px;">
+            github.com/qubitpage/IBM-Bob-Sentinel-Security
+        </p>
+        <p style="font-size: 36px; margin-bottom: 40px;">
+            ✓ Complete source code<br>
+            ✓ Installation scripts<br>
+            ✓ Comprehensive documentation<br>
+            ✓ Sample vulnerable application<br>
+            ✓ Live dashboard demo
+        </p>
+    </div>
+    <div class="slide-number">9</div>
+</div>
+
+<!-- Slide 10: Call to Action -->
+<div class="slide">
+    <h2>Join the Security Revolution</h2>
+    <p style="font-size: 48px; margin-bottom: 60px;">Make security scanning as easy as chatting with Bob</p>
+    <ul style="font-size: 42px;">
+        <li>⭐ Star the repository</li>
+        <li>📥 Try the one-click installer</li>
+        <li>🔍 Scan your first project</li>
+        <li>🤝 Contribute to the project</li>
+        <li>📢 Share with your team</li>
+    </ul>
+    <a href="https://github.com/qubitpage/IBM-Bob-Sentinel-Security" class="cta" style="margin-top: 80px;">
+        Get Started Now →
+    </a>
+    <div class="slide-number">10</div>
+</div>
+
+<!-- Slide 11: Thank You -->
+<div class="slide">
+    <div class="logo">🛡️</div>
+    <h1 style="font-size: 120px;">Thank You</h1>
+    <p class="subtitle" style="font-size: 54px;">Bob Sentinel - Security Made Simple</p>
+    <p style="font-size: 42px; margin-top: 80px; color: #a0a0a0;">
+        github.com/qubitpage/IBM-Bob-Sentinel-Security
+    </p>
+    <p style="font-size: 36px; margin-top: 40px; color: #667eea;">
+        Built with ❤️ using IBM Bob
+    </p>
+    <div class="slide-number">11</div>
+</div>
+
+</body>
+</html>

@@ -12,15 +12,16 @@
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .folder-browser {
-  background: #fff;
-  border-radius: 12px;
+  background: var(--bg-card, #111827);
+  border-radius: 10px;
   width: 560px;
   max-width: 90vw;
   max-height: 70vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
   overflow: hidden;
+  border: 1px solid var(--border, #1e293b);
 }
 
 .fb-header {
@@ -28,14 +29,16 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border, #1e293b);
 }
 
 .fb-header h3 {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #111827;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-bright, #22d3ee);
+  letter-spacing: .03em;
+  text-transform: uppercase;
 }
 
 .fb-close {
@@ -43,7 +46,7 @@
   border: none;
   font-size: 22px;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--text-muted, #64748b);
   width: 32px;
   height: 32px;
   border-radius: 6px;
@@ -52,12 +55,12 @@
   justify-content: center;
 }
 
-.fb-close:hover { background: #f3f4f6; color: #111; }
+.fb-close:hover { background: rgba(239,68,68,.1); color: var(--critical, #ef4444); }
 
 .fb-path {
   padding: 10px 20px;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background: rgba(6,182,212,.03);
+  border-bottom: 1px solid var(--border, #1e293b);
   font-size: 12px;
   display: flex;
   align-items: center;
@@ -66,14 +69,14 @@
 }
 
 .fb-path-label {
-  color: #6b7280;
-  font-weight: 500;
+  color: var(--text-muted, #64748b);
+  font-weight: 600;
   flex-shrink: 0;
 }
 
 .fb-path-value {
-  color: #374151;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: var(--accent, #06b6d4);
+  font-family: inherit;
   font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
@@ -84,31 +87,32 @@
   display: flex;
   gap: 8px;
   padding: 12px 20px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border, #1e293b);
 }
 
 .fb-btn {
   padding: 7px 14px;
-  border: 1px solid #d1d5db;
-  background: #fff;
+  border: 1px solid var(--border, #1e293b);
+  background: var(--bg-card, #111827);
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
-  font-weight: 500;
-  color: #374151;
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
   transition: all 0.15s;
+  font-family: inherit;
 }
 
-.fb-btn:hover:not(:disabled) { background: #f3f4f6; border-color: #9ca3af; }
+.fb-btn:hover:not(:disabled) { background: var(--bg-hover, #1a2332); border-color: var(--accent); color: var(--accent); }
 .fb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.fb-btn.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
-.fb-btn.primary:hover { background: #1d4ed8; }
+.fb-btn.primary { background: linear-gradient(135deg, var(--accent), #6366f1); color: #fff; border-color: transparent; }
+.fb-btn.primary:hover { filter: brightness(1.15); }
 
 .fb-error {
   padding: 8px 20px;
-  background: #fef2f2;
-  color: #dc2626;
-  font-size: 12px;
+  background: rgba(239,68,68,.08);
+  color: var(--critical, #ef4444);
+  font-size: 11px;
 }
 
 .fb-list {
@@ -122,8 +126,8 @@
 .fb-loading, .fb-empty {
   padding: 40px;
   text-align: center;
-  color: #9ca3af;
-  font-size: 13px;
+  color: var(--text-muted, #64748b);
+  font-size: 12px;
 }
 
 .fb-item {
@@ -131,20 +135,20 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: background 0.1s;
 }
 
-.fb-item:hover { background: #f3f4f6; }
+.fb-item:hover { background: var(--bg-hover, #1a2332); }
 
 .fb-icon { font-size: 18px; flex-shrink: 0; }
 
 .fb-name {
   flex: 1;
-  font-size: 13px;
-  font-weight: 500;
-  color: #1f2937;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text, #e2e8f0);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -153,15 +157,18 @@
 .fb-scan-btn {
   opacity: 0;
   padding: 4px 10px;
-  background: #10b981;
+  background: var(--accent, #06b6d4);
   color: #fff;
   border: none;
   border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   cursor: pointer;
   transition: opacity 0.1s;
+  font-family: inherit;
+  letter-spacing: .04em;
+  text-transform: uppercase;
 }
 
 .fb-item:hover .fb-scan-btn { opacity: 1; }
-.fb-scan-btn:hover { background: #059669; }
+.fb-scan-btn:hover { filter: brightness(1.15); }

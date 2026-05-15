@@ -2,15 +2,15 @@
 .health-ring-wrap{position:relative;width:100px;height:100px;margin:0 auto 8px}
 .health-ring{width:100%;height:100%}
 .health-ring-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
-.health-num{font-size:24px;font-weight:800;line-height:1}
-.health-label{font-size:11px;color:var(--text-muted)}
-.health-status{font-size:13px;font-weight:700;margin-bottom:12px}
+.health-num{font-size:24px;font-weight:800;line-height:1;font-family:inherit}
+.health-label{font-size:10px;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase}
+.health-status{font-size:12px;font-weight:700;margin-bottom:12px;letter-spacing:.04em;text-transform:uppercase}
 .health-breakdown{text-align:left}
-.hb-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px}
-.hb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.hb-dot.critical{background:var(--critical)}
-.hb-dot.high{background:var(--high)}
-.hb-dot.medium{background:var(--medium)}
-.hb-dot.low{background:var(--low)}
+.hb-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px}
+.hb-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;box-shadow:0 0 6px currentColor}
+.hb-dot.critical{background:var(--critical);color:var(--critical)}
+.hb-dot.high{background:var(--high);color:var(--high)}
+.hb-dot.medium{background:var(--medium);color:var(--medium)}
+.hb-dot.low{background:var(--low);color:var(--low)}
 .hb-name{flex:1;color:var(--text-secondary)}
 .hb-count{font-weight:700}

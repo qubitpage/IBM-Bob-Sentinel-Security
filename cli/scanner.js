@@ -213,6 +213,154 @@ class SecurityScanner {
   }
 
   /**
+   * Generate a concrete fix for a vulnerability
+   */
+  generateFix(type, code, filePath) {
+    const fixes = {
+      hardcoded_aws_key: {
+        code: 'const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;',
+        explanation: 'Hardcoded AWS credentials can be extracted by anyone with repository access. Move them to environment variables and never commit them to source control.',
+        steps: [
+          'Remove the hardcoded key from source code immediately',
+          'Add the key to a .env file (ensure .env is in .gitignore)',
+          'Reference it via process.env.AWS_ACCESS_KEY_ID',
+          'Rotate the exposed key in the AWS IAM console'
+        ]
+      },
+      hardcoded_aws_secret: {
+        code: 'const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY;',
+        explanation: 'AWS secret keys grant full programmatic access to your cloud resources. A leaked key can result in data theft, crypto-mining charges, or full account takeover.',
+        steps: [
+          'Remove the secret from source code',
+          'Store in .env or a secrets manager (AWS Secrets Manager, Vault)',
+          'Load via process.env.AWS_SECRET_ACCESS_KEY',
+          'Rotate the compromised key immediately in AWS IAM'
+        ]
+      },
+      hardcoded_stripe_key: {
+        code: 'const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;',
+        explanation: 'A Stripe live secret key allows anyone to process charges, issue refunds, and access customer payment data. This is a PCI-DSS compliance violation.',
+        steps: [
+          'Remove sk_live_* from source code',
+          'Add STRIPE_SECRET_KEY to .env (ensure .env is gitignored)',
+          'Reference via process.env.STRIPE_SECRET_KEY',
+          'Roll the key in Stripe Dashboard → Developers → API Keys'
+        ]
+      },
+      hardcoded_api_key: {
+        code: 'const API_KEY = process.env.API_KEY;',
+        explanation: 'API keys embedded in source are visible to anyone who can read the repository. Attackers use leaked keys for unauthorized access, data exfiltration, and service abuse.',
+        steps: [
+          'Extract the key value to a .env file',
+          'Replace the hardcoded string with process.env.API_KEY',
+          'Add .env to .gitignore if not already present',
+          'Regenerate the key if the repo has been public'
+        ]
+      },
+      hardcoded_password: {
+        code: 'const DB_PASSWORD = process.env.DB_PASSWORD;',
+        explanation: 'Passwords in source code are the #1 cause of credential leaks. Even in private repos, they persist in git history forever unless force-purged.',
+        steps: [
+          'Move the password to an environment variable or secrets manager',
+          'Replace with process.env.DB_PASSWORD (or equivalent)',
+          'Change the compromised password on the target system',
+          'Audit git history: git log -p -S "password_value"'
+        ]
+      },
+      hardcoded_jwt_secret: {
+        code: 'const JWT_SECRET = process.env.JWT_SECRET;\n// Use a strong random secret: require("crypto").randomBytes(64).toString("hex")',
+        explanation: 'A leaked JWT signing secret allows attackers to forge valid authentication tokens and impersonate any user, including admins.',
+        steps: [
+          'Move the JWT secret to an environment variable',
+          'Generate a new secret with: require("crypto").randomBytes(64).toString("hex")',
+          'Invalidate all existing tokens (force re-login)',
+          'Store in .env or a secrets manager'
+        ]
+      },
+      sql_injection: {
+        code: (code.includes('`') || code.includes('${'))
+          ? '// Use parameterized queries:\nconst result = await db.query("SELECT * FROM users WHERE id = $1", [userId]);'
+          : '// Use parameterized queries instead of string concatenation:\nconst result = await db.query("SELECT * FROM users WHERE id = ?", [userId]);',
+        explanation: 'SQL injection lets attackers execute arbitrary database commands — reading all data, modifying records, or deleting entire tables. It is the #1 web application vulnerability (OWASP A03).',
+        steps: [
+          'Replace string concatenation/template literals with parameterized queries',
+          'Use placeholders ($1, ?, :name) and pass values as a separate array',
+          'Use an ORM (Sequelize, Prisma, Knex) that auto-parameterizes',
+          'Validate and sanitize all user input at the API boundary'
+        ]
+      },
+      xss_vulnerability: {
+        code: code.includes('innerHTML')
+          ? '// Use textContent instead of innerHTML:\nelement.textContent = userInput;\n// Or sanitize with DOMPurify:\nelement.innerHTML = DOMPurify.sanitize(userInput);'
+          : '// Avoid document.write. Use DOM APIs:\nconst el = document.createElement("div");\nel.textContent = userInput;\ndocument.body.appendChild(el);',
+        explanation: 'Cross-Site Scripting allows attackers to inject malicious JavaScript that runs in other users\' browsers, stealing session tokens, credentials, or performing actions on their behalf.',
+        steps: [
+          'Replace innerHTML/document.write with textContent or DOM APIs',
+          'If HTML rendering is required, sanitize with DOMPurify',
+          'Set Content-Security-Policy headers to restrict inline scripts',
+          'Encode all user-supplied data before rendering'
+        ]
+      },
+      command_injection: {
+        code: '// Use execFile with explicit arguments (no shell interpolation):\nconst { execFile } = require("child_process");\nexecFile("command", [arg1, arg2], (err, stdout) => { });',
+        explanation: 'Command injection lets attackers execute arbitrary system commands on your server. A single vulnerable endpoint can lead to full server compromise, data theft, or ransomware.',
+        steps: [
+          'Replace exec() with execFile() — it does NOT invoke a shell',
+          'Pass arguments as an array, never as a concatenated string',
+          'Validate and whitelist all user-supplied inputs',
+          'Run the process with minimal privileges (least-privilege principle)'
+        ]
+      },
+      unsafe_eval: {
+        code: '// Replace eval() with safe alternatives:\n// JSON parsing: JSON.parse(data)\n// Dynamic property access: obj[propertyName]\n// Computed function calls: const fn = handlers[name]; fn();',
+        explanation: 'eval() executes arbitrary code strings at runtime. Attackers who control the input can run any JavaScript — reading files, making network requests, or taking over the process.',
+        steps: [
+          'Identify why eval() is being used (JSON parsing, dynamic dispatch, etc.)',
+          'Replace with the specific safe alternative (JSON.parse, Map lookup, etc.)',
+          'If eval is truly needed, use vm2 or a sandboxed environment',
+          'Add "no-eval" to your ESLint config to prevent future use'
+        ]
+      },
+      path_traversal: {
+        code: 'const safePath = path.join(BASE_DIR, path.basename(userInput));\n// Or validate the resolved path stays within bounds:\nconst resolved = path.resolve(BASE_DIR, userInput);\nif (!resolved.startsWith(BASE_DIR)) throw new Error("Access denied");',
+        explanation: 'Path traversal (../../) allows attackers to read or write files outside the intended directory — accessing /etc/passwd, configuration files, or overwriting system files.',
+        steps: [
+          'Use path.basename() to strip directory components from user input',
+          'Resolve the full path and verify it starts with the allowed base directory',
+          'Never pass raw user input to fs.readFile/writeFile',
+          'Use a chroot or container to limit filesystem access'
+        ]
+      },
+      weak_crypto: {
+        code: '// Replace MD5 with a secure algorithm:\nconst crypto = require("crypto");\nconst hash = crypto.createHash("sha256").update(data).digest("hex");\n// For passwords, use bcrypt or argon2 instead of hashing',
+        explanation: 'MD5 is cryptographically broken — collisions can be generated in seconds. It must never be used for password hashing, integrity checks, or any security-sensitive operation.',
+        steps: [
+          'Replace MD5 with SHA-256 (for checksums) or bcrypt/argon2 (for passwords)',
+          'If MD5 is used for non-security purposes (cache keys), document the reason',
+          'Rehash any stored MD5 password hashes with bcrypt on next login',
+          'Update any systems that verify MD5 hashes'
+        ]
+      },
+      debug_enabled: {
+        code: 'const DEBUG = process.env.NODE_ENV !== "production";\n// Or use a proper logging library:\nconst logger = require("pino")({ level: process.env.LOG_LEVEL || "info" });',
+        explanation: 'Debug mode in production exposes stack traces, internal state, database queries, and environment variables to end users. Attackers use this information for targeted exploitation.',
+        steps: [
+          'Set DEBUG=false in production environment variables',
+          'Use NODE_ENV=production to auto-disable debug features',
+          'Replace console.log with a structured logger (pino, winston)',
+          'Ensure error responses never include stack traces in production'
+        ]
+      }
+    };
+
+    return fixes[type] || {
+      code: '// Review and apply the appropriate security fix for this pattern',
+      explanation: 'This code pattern has been flagged as a potential security concern. Review the specific context and apply the recommended remediation.',
+      steps: ['Review the flagged code in context', 'Apply the security best practice for this vulnerability type', 'Test that the fix does not break functionality', 'Add automated tests to prevent regression']
+    };
+  }
+
+  /**
    * Scan a single file
    */
   async scanFile(filePath) {
@@ -234,6 +382,9 @@ class SecurityScanner {
           const contextStart = Math.max(0, lineNumber - 2);
           const contextEnd = Math.min(lines.length, lineNumber + 1);
           const context = lines.slice(contextStart, contextEnd).join('\n');
+
+          // Generate concrete fix
+          const fix = this.generateFix(pattern.type, lineContent, filePath);
           
           this.vulnerabilities.push({
             id: `VULN-${String(this.vulnerabilities.length + 1).padStart(3, '0')}`,
@@ -248,7 +399,8 @@ class SecurityScanner {
             message: pattern.message,
             cwe: pattern.cwe,
             owasp: pattern.owasp,
-            confidence: 85
+            confidence: 85,
+            fix: fix
           });
         }
       }

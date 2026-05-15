@@ -1,0 +1,60 @@
+#!/bin/sh
+#
+# Bob Sentinel — Git Pre-Push Hook
+# Blocks pushes when CRITICAL or HIGH severity vulnerabilities are detected.
+# Install: cp hooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+#
+
+SCANNER="$(git rev-parse --show-toplevel)/cli/scanner.js"
+TARGET="$(git rev-parse --show-toplevel)"
+REPORT="$(git rev-parse --show-toplevel)/cache/vulnerabilities.json"
+
+echo ""
+echo "╔════════════════════════════════════════════════════════╗"
+echo "║  🛡️  Bob Sentinel — Pre-Push Security Gate            ║"
+echo "╚════════════════════════════════════════════════════════╝"
+echo ""
+
+# Run the scanner
+node "$SCANNER" "$TARGET" > /dev/null 2>&1
+
+# Parse results
+if [ ! -f "$REPORT" ]; then
+  echo "⚠  Scanner did not produce a report. Allowing push."
+  exit 0
+fi
+
+CRITICAL=$(node -e "const r=require('$REPORT'); console.log(r.summary.critical || 0)")
+HIGH=$(node -e "const r=require('$REPORT'); console.log(r.summary.high || 0)")
+TOTAL=$(node -e "const r=require('$REPORT'); console.log(r.summary.total || 0)")
+SCORE=$(node -e "const r=require('$REPORT'); console.log(r.summary.health_score)")
+
+echo "  Files scanned:   $(node -e "const r=require('$REPORT'); console.log(r.total_files_scanned)")"
+echo "  Vulnerabilities: $TOTAL"
+echo "  Critical:        $CRITICAL"
+echo "  High:            $HIGH"
+echo "  Health Score:    $SCORE/100"
+echo ""
+
+if [ "$CRITICAL" -gt 0 ]; then
+  echo "🚫 PUSH BLOCKED — $CRITICAL critical vulnerabilities detected."
+  echo ""
+  echo "  Run the dashboard to review and fix:"
+  echo "    cd dashboard/backend && npm start"
+  echo "    cd dashboard/frontend && npm run dev"
+  echo ""
+  echo "  Or bypass (not recommended):"
+  echo "    git push --no-verify"
+  echo ""
+  exit 1
+fi
+
+if [ "$HIGH" -gt 0 ]; then
+  echo "⚠️  WARNING — $HIGH high-severity issues found."
+  echo "  Consider fixing before pushing. Allowing push."
+  echo ""
+fi
+
+echo "✓ Security check passed. Pushing..."
+echo ""
+exit 0
