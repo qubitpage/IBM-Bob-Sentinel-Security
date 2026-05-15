@@ -200,7 +200,7 @@ class SecurityScanner {
    * Check if directory should be skipped
    */
   shouldSkipDirectory(name) {
-    const skipDirs = ['node_modules', '.git', 'dist', 'build', 'target', 'vendor', '.next', 'coverage'];
+    const skipDirs = ['node_modules', '.git', 'dist', 'build', 'target', 'vendor', '.next', 'coverage', 'cache', '.bob', '__pycache__'];
     return skipDirs.includes(name);
   }
 
