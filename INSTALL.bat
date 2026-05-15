@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 REM Bob Sentinel - Windows Double-Click Installer
 REM This script installs Bob Sentinel into IBM Bob with a single double-click
 
@@ -40,9 +41,9 @@ if %errorlevel% neq 0 (
     echo You'll need Node.js to run the dashboard.
     echo Download from: https://nodejs.org/
     echo.
-    echo Continue anyway? (y/n)
-    set /p continue=
-    if /i not "%continue%"=="y" exit /b 1
+    echo Continue anyway? [y/n]
+    set /p "continue="
+    if /i not "!continue!"=="y" exit /b 1
 ) else (
     echo   [OK] Node.js found
 )
@@ -74,10 +75,10 @@ echo ========================================================================
 echo.
 echo Bob Sentinel has been installed into IBM Bob.
 echo.
-echo Would you like to start the dashboard now? (y/n)
-set /p startdash=
+echo Would you like to start the dashboard now? [y/n]
+set /p "startdash="
 
-if /i "%startdash%"=="y" (
+if /i "!startdash!"=="y" (
     echo.
     echo [4/5] Starting Bob Sentinel Dashboard...
     echo.
@@ -87,7 +88,7 @@ if /i "%startdash%"=="y" (
         echo Installing backend dependencies...
         cd /d "%~dp0dashboard\backend"
         call npm install
-        if %errorlevel% neq 0 (
+        if !errorlevel! neq 0 (
             echo ERROR: Failed to install backend dependencies
             pause
             exit /b 1
@@ -98,7 +99,7 @@ if /i "%startdash%"=="y" (
         echo Installing frontend dependencies...
         cd /d "%~dp0dashboard\frontend"
         call npm install
-        if %errorlevel% neq 0 (
+        if !errorlevel! neq 0 (
             echo ERROR: Failed to install frontend dependencies
             pause
             exit /b 1

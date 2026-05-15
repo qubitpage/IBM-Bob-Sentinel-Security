@@ -152,6 +152,96 @@ system_prompt: |
 
   Your goal is to prevent security incidents before they happen. Be vigilant, thorough, and educational in your analysis.
 
+commands:
+  - name: "scan"
+    slug: "/scan"
+    description: "Scan the current project or a specified directory for security vulnerabilities"
+    usage: "/scan [path]"
+    action: "run_scanner"
+    args:
+      - name: "path"
+        type: "string"
+        required: false
+        default: "."
+
+  - name: "results"
+    slug: "/results"
+    description: "View scan results, optionally filtered by severity"
+    usage: "/results [critical|high|medium|low]"
+    action: "show_results"
+    args:
+      - name: "severity"
+        type: "string"
+        required: false
+        enum: ["critical", "high", "medium", "low"]
+
+  - name: "fix"
+    slug: "/fix"
+    description: "Apply suggested fixes for detected vulnerabilities"
+    usage: "/fix [vuln-id|all]"
+    action: "apply_fix"
+    args:
+      - name: "target"
+        type: "string"
+        required: false
+        default: "all"
+
+  - name: "export"
+    slug: "/export"
+    description: "Export scan results in JSON or CSV format"
+    usage: "/export [json|csv]"
+    action: "export_results"
+    args:
+      - name: "format"
+        type: "string"
+        required: false
+        default: "json"
+        enum: ["json", "csv"]
+
+  - name: "health"
+    slug: "/health"
+    description: "Show repository health score and breakdown"
+    usage: "/health"
+    action: "show_health"
+
+  - name: "help"
+    slug: "/help"
+    description: "Show Bob Sentinel help and available commands"
+    usage: "/help [command]"
+    action: "show_help"
+    args:
+      - name: "command"
+        type: "string"
+        required: false
+
+tools:
+  scanner:
+    type: "node_script"
+    path: "tools/bob-sentinel/scanner.js"
+    fallback_path: "cli/scanner.js"
+  dashboard:
+    type: "url"
+    url: "http://localhost:5173"
+
+hooks:
+  after_code_generation:
+    enabled: true
+    action: "run_scanner"
+    auto_fix: false
+    report_in_chat: true
+  before_git_push:
+    enabled: true
+    action: "run_scanner"
+    block_on_critical: true
+    block_on_high: false
+
+chat:
+  show_inline_warnings: true
+  highlight_vulnerable_code: true
+  suggest_fixes: true
+  show_health_score: true
+  welcome_message: "🛡️ Bob Sentinel active. Type /scan to scan your code, /help for all commands."
+
 rules:
   scan_patterns:
     - name: "AWS Access Key"
