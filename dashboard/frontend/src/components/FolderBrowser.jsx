@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import API_BASE from '../api';
 import './FolderBrowser.css';
 
 function FolderBrowser({ onSelect, onClose }) {
@@ -7,8 +8,6 @@ function FolderBrowser({ onSelect, onClose }) {
   const [parentPath, setParentPath] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const API_BASE = 'http://localhost:3000/api';
 
   const browse = async (dir) => {
     setLoading(true);

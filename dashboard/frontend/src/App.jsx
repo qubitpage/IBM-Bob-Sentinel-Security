@@ -4,6 +4,7 @@ import VulnerabilityFeed from './components/VulnerabilityFeed';
 import CodeDiffViewer from './components/CodeDiffViewer';
 import HealthScore from './components/HealthScore';
 import FolderBrowser from './components/FolderBrowser';
+import API_BASE from './api';
 import './App.css';
 
 function App() {
@@ -18,8 +19,6 @@ function App() {
   const [scanDir, setScanDir] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
   const [showBrowser, setShowBrowser] = useState(false);
-
-  const API_BASE = 'http://localhost:3000/api';
 
   const fetchScanResults = useCallback(async () => {
     try {

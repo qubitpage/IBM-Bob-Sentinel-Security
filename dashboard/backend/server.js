@@ -7,6 +7,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs').promises;
+const { execFileSync } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -349,7 +350,6 @@ app.post('/api/scan', async (req, res) => {
   const scannerPath = path.join(__dirname, '../../cli/scanner.js');
 
   try {
-    const { execSync } = require('child_process');
     const resolvedDir = path.resolve(targetDir);
 
     // Validate the directory exists
@@ -364,7 +364,6 @@ app.post('/api/scan', async (req, res) => {
     // Run scanner - use execFile to avoid shell injection
     let output = '';
     try {
-      const { execFileSync } = require('child_process');
       output = execFileSync('node', [scannerPath, resolvedDir], {
         encoding: 'utf8',
         timeout: 120000,
@@ -475,16 +474,33 @@ app.use((req, res) => {
 /**
  * Start server
  */
-app.listen(PORT, () => {
-  console.log('╔════════════════════════════════════════════════════════╗');
-  console.log('║         🛡️  Bob Sentinel Dashboard API               ║');
-  console.log('╠════════════════════════════════════════════════════════╣');
-  console.log(`║  Server running on: http://localhost:${PORT}           ║`);
-  console.log(`║  Health check:      http://localhost:${PORT}/api/health║`);
-  console.log(`║  Scan results:      http://localhost:${PORT}/api/scan-results║`);
-  console.log('╚════════════════════════════════════════════════════════╝');
-});
+function startServer(port = PORT) {
+  const server = app.listen(port, () => {
+    console.log('╔════════════════════════════════════════════════════════╗');
+    console.log('║         🛡️  Bob Sentinel Dashboard API               ║');
+    console.log('╠════════════════════════════════════════════════════════╣');
+    console.log(`║  Server running on: http://localhost:${port}           ║`);
+    console.log(`║  Health check:      http://localhost:${port}/api/health║`);
+    console.log(`║  Scan results:      http://localhost:${port}/api/scan-results║`);
+    console.log('╚════════════════════════════════════════════════════════╝');
+  });
+
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      console.error(`Port ${port} is already in use. Stop the existing backend or start this server with PORT=<free-port>.`);
+      process.exit(1);
+    }
+    throw error;
+  });
+
+  return server;
+}
+
+if (require.main === module) {
+  startServer();
+}
 
 module.exports = app;
+module.exports.startServer = startServer;
 
 // Made with Bob
