@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white" alt="Node.js">
   <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black" alt="React">
   <img src="https://img.shields.io/badge/Express-4.18-000000?logo=express&logoColor=white" alt="Express">
-  <img src="https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white" alt="Vite">
+  <img src="https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white" alt="Vite">
   <img src="https://img.shields.io/badge/License-MIT-blue" alt="License">
   <img src="https://img.shields.io/badge/IBM%20Bob-Hackathon-054ADA?logo=ibm" alt="IBM Bob Hackathon">
 </p>
@@ -67,11 +67,19 @@ Then open the dashboard at `http://localhost:5173` to explore every finding inte
 ## ✨ Features
 
 ### Security Scanner (CLI)
-- **13 vulnerability patterns** covering OWASP Top 10 categories
+- **40 vulnerability patterns** covering OWASP Top 10 categories
 - Recursive directory scanning with smart exclusions (`node_modules`, `.git`, `dist`, `.next`, `cache`, etc.)
 - Per-finding CWE and OWASP mapping with confidence scores
 - JSON report output, CI/CD-friendly exit codes
 - Scans JS, TS, JSX, TSX, Python, Java, PHP, Ruby, Go, C#, `.env`, config, JSON, YAML
+
+### Code & Secret Firewall
+- **Policy engine:** every scan is evaluated by `lib/firewall.js`
+- **Release decision:** returns `ALLOW`, `WARN`, or `BLOCK`
+- **Blocking logic:** blocks critical issues, critical secret leaks, critical exploit paths, and scans below the health floor
+- **Explainable checks:** reports which firewall rule fired and which files are affected
+- **Publish guard:** `node cli/publish-guard.js` checks release targets before any human or AI publishes
+- **Git enforcement:** the pre-push hook blocks when the firewall returns `BLOCK`
 
 ### Web Dashboard
 - **Scan from the browser** — enter any directory path and click Run Scan
@@ -81,14 +89,15 @@ Then open the dashboard at `http://localhost:5173` to explore every finding inte
 - **Issues tab** — searchable, sortable, filterable list with expandable detail cards
   - Each card shows: code snippet, "What is this?" explanation, file path, line number, CWE, OWASP, confidence %
 - **Scan Log tab** — full scanner console output with Rescan and Clear buttons
+- **Firewall tab** — release gate status, policy checks, block reasons, affected files, next steps
 - **Filters** — severity pills (Critical/High/Medium/Low), category dropdown, text search
 - **Code Diff Viewer** — side-by-side vulnerable vs. secure code with fix steps
 - **Export** — download results as JSON or CSV
 
 ### REST API
-- 10+ endpoints for programmatic access
+- 12+ endpoints for programmatic access
 - Filter by severity, category, file
-- Health checks, export, and browse endpoints
+- Health checks, export, browse, and firewall decision endpoints
 - CORS enabled for frontend integration
 
 ### IBM Bob Integration
@@ -180,7 +189,7 @@ chmod +x install.sh && ./install.sh
 1. Open **http://localhost:5173**
 2. Type a directory path in the top bar (or leave empty for the sample app)
 3. Click **Run Scan**
-4. Results appear immediately — overview, issues, and scan log
+4. Results appear immediately — overview, issues, firewall, and scan log
 
 ### Scan using the folder browser
 
@@ -201,6 +210,49 @@ node cli/scanner.js sample-vulnerable-app
 # Results are saved to cache/vulnerabilities.json
 ```
 
+### Guard a publish or AI-assisted push
+
+Run the publish guard before pushing to GitHub or before asking an AI agent to publish changes:
+
+```bash
+node cli/publish-guard.js
+```
+
+By default it scans the production release surfaces:
+
+```text
+cli
+lib
+dashboard/backend
+dashboard/frontend/src
+```
+
+It exits with code `1` when the firewall returns `BLOCK`, so chat agents, terminal scripts, CI jobs, and Git hooks can stop the publish automatically. You can scan explicit targets too:
+
+```bash
+node cli/publish-guard.js cli lib dashboard/backend dashboard/frontend/src
+```
+
+For a custom release set, use:
+
+```bash
+BOB_SENTINEL_TARGETS="cli;lib;dashboard/backend;dashboard/frontend/src" node cli/publish-guard.js
+```
+
+If an AI assistant publishes through normal `git push`, the installed pre-push hook runs this guard automatically. If an AI assistant publishes through a direct GitHub API upload or a web UI, that path bypasses local Git hooks, so the assistant must run `node cli/publish-guard.js` first and refuse to publish on `BLOCK`.
+
+### Fix with Bob from the dashboard
+
+The Firewall tab includes the coordinated release loop:
+
+1. **Send Fixes to Bob** creates a structured fix handoff in `.bob/inbox/` and `cache/bob-fix-session.json`.
+2. Bob Sentinel mode can use `/fix latest-session` to apply the requested fixes from that handoff.
+3. **Rescan** refreshes findings and the firewall decision.
+4. **Run Publish Guard** checks whether the release is allowed.
+5. **Push to GitHub** runs the publish guard first and only runs `git push` when the firewall is not blocking.
+
+The dashboard does not silently rewrite source files by itself. It hands the exact findings and secure-fix directions to Bob, then uses the firewall to decide whether publishing is allowed.
+
 ### Filter and explore results
 
 - **Severity pills** in the sidebar — click to filter by Critical, High, Medium, Low
@@ -209,6 +261,7 @@ node cli/scanner.js sample-vulnerable-app
 - **Sort dropdown** — sort by severity, file, or type
 - **Expand any issue** — see the code, explanation, file + line, CWE/OWASP badges
 - **View Fix** — opens the Code Diff Viewer with vulnerable vs. secure code
+- **Firewall tab** — see whether this folder is allowed, warning-only, or blocked by policy
 
 ### Export results
 
@@ -234,7 +287,7 @@ node cli/scanner.js sample-vulnerable-app
 ┌──────────────────────────┐  ┌──────────────────────────┐
 │   Express.js API (3000)  │  │   React Dashboard (5173) │
 │   - Spawns scanner       │  │   - Fetches API data     │
-│   - Serves results       │  │   - Renders components   │
+│   - Evaluates firewall   │  │   - Renders components   │
 │   - Browse directories   │  │   - Filters/sorts client │
 └────────────┬─────────────┘  └──────────────────────────┘
              │ node cli/scanner.js <dir>
@@ -243,20 +296,41 @@ node cli/scanner.js sample-vulnerable-app
 │   CLI Scanner Engine     │
 │   - Walks directory tree │
 │   - Skips node_modules…  │
-│   - Matches 13 patterns  │
+│   - Matches 40 patterns  │
 │   - Writes JSON report   │
 └────────────┬─────────────┘
              ▼
-      cache/vulnerabilities.json
+┌──────────────────────────┐
+│   Firewall Policy Engine │
+│   - ALLOW / WARN / BLOCK │
+│   - Explains decision    │
+│   - Feeds git hook + UI  │
+└────────────┬─────────────┘
+     ▼
+  cache/vulnerabilities.json
+  cache/firewall-decision.json
 ```
 
 **Scanner pipeline:**
 
 1. **Walk** — Recursively reads the target directory, skipping `node_modules`, `.git`, `dist`, `build`, `.next`, `cache`, `.bob`, `__pycache__`, `coverage`, `vendor`, `target`
 2. **Filter** — Only scans files with known extensions: `.js`, `.ts`, `.jsx`, `.tsx`, `.py`, `.java`, `.php`, `.rb`, `.go`, `.cs`, `.env`, `.config`, `.json`, `.yaml`, `.yml`
-3. **Match** — Runs 13 regex patterns against each file's content, recording line number, column, code snippet, and surrounding context
+3. **Match** — Runs 40 regex patterns against each file's content, recording line number, column, code snippet, and surrounding context
 4. **Score** — Calculates a health score (100 base, minus penalties per severity level)
-5. **Report** — Writes a structured JSON report to `cache/vulnerabilities.json`
+5. **Firewall** — Evaluates the report against critical, secret leak, exploit path, and health-floor rules
+6. **Report** — Writes a structured JSON report to `cache/vulnerabilities.json` and a firewall decision to `cache/firewall-decision.json`
+
+**Firewall decision logic:**
+
+| Rule | Decision |
+|------|----------|
+| Any critical vulnerability | `BLOCK` |
+| Critical secret leak such as live keys, passwords, tokens, private keys, connection strings | `BLOCK` |
+| Critical exploit path such as SQL injection, command injection, SSRF, auth bypass, unsafe JWT | `BLOCK` |
+| Health score below 50/100 | `BLOCK` |
+| High severity findings without a blocking condition | `WARN` |
+| Medium findings above the review threshold | `WARN` |
+| No blocking or warning conditions | `ALLOW` |
 
 **Health score calculation:**
 | Severity | Penalty per issue |
@@ -278,9 +352,13 @@ bob-sentinel/
 │   └── modes/
 │       └── sentinel.yaml          # IBM Bob mode — 6 slash commands
 ├── cli/
-│   └── scanner.js                 # Security scanner engine (13 patterns)
+│   ├── scanner.js                 # Security scanner engine (40 patterns)
+│   └── publish-guard.js           # Publish/AI release firewall command
+├── lib/
+│   └── firewall.js                # Code & secret firewall policy engine
 ├── cache/
-│   └── vulnerabilities.json       # Latest scan results (generated)
+│   ├── vulnerabilities.json       # Latest scan results (generated)
+│   └── firewall-decision.json     # Latest firewall decision (generated)
 ├── dashboard/
 │   ├── backend/
 │   │   ├── server.js              # Express.js API (10+ endpoints)
@@ -291,12 +369,13 @@ bob-sentinel/
 │       │   ├── App.css            # Global styles, dark topbar, light content
 │       │   └── components/
 │       │       ├── Dashboard.jsx      # Overview — severity cards, category bars
+│       │       ├── FirewallPanel.jsx  # Firewall — allow/warn/block policy view
 │       │       ├── HealthScore.jsx    # SVG ring health score widget
 │       │       ├── VulnerabilityFeed.jsx  # Issues — search, sort, expand
 │       │       ├── CodeDiffViewer.jsx     # Vulnerable vs. secure code
 │       │       └── FolderBrowser.jsx      # Filesystem folder navigator
 │       └── package.json
-├── sample-vulnerable-app/         # Demo app with 26 real vulnerabilities
+├── sample-vulnerable-app/         # Demo app with 31 real vulnerabilities
 │   ├── backend/
 │   │   ├── config.js              # Hardcoded AWS, Stripe, JWT secrets
 │   │   ├── db.js                  # SQL injection patterns
@@ -321,6 +400,12 @@ All endpoints are served at `http://localhost:3000/api/`.
 |--------|----------|-------------|
 | `GET` | `/health` | Health check — returns API status |
 | `GET` | `/scan-results` | Full scan report with all vulnerabilities |
+| `GET` | `/firewall` | Latest firewall decision with policy checks and reasons |
+| `GET` | `/firewall/policy` | Active firewall policy defaults |
+| `POST` | `/bob/fix-session` | Create a Bob fix handoff from the latest scan |
+| `GET` | `/bob/fix-session` | Read the latest Bob fix handoff |
+| `POST` | `/publish/guard` | Run the publish firewall guard |
+| `POST` | `/publish/github` | Run the guard, then `git push` only if allowed |
 | `GET` | `/vulnerabilities` | Filtered list — query: `?severity=CRITICAL&category=secrets&file=api.js` |
 | `GET` | `/vulnerability/:id` | Single vulnerability detail by ID (e.g., `VULN-001`) |
 | `GET` | `/health-score` | Health score, breakdown, recommendations |
@@ -342,6 +427,9 @@ curl -X POST http://localhost:3000/api/scan \
 # Get critical issues only
 curl http://localhost:3000/api/vulnerabilities?severity=CRITICAL
 
+# Get the firewall release decision
+curl http://localhost:3000/api/firewall
+
 # Export as CSV
 curl -o results.csv http://localhost:3000/api/export?format=csv
 ```
@@ -349,6 +437,8 @@ curl -o results.csv http://localhost:3000/api/export?format=csv
 ---
 
 ## 🔐 Security Patterns Detected
+
+The scanner currently loads **40 detection rules**. The table below shows the first core rules; the full JSON report also includes the exact `type`, CWE, OWASP category, confidence, and fix guidance for every finding.
 
 | # | Pattern | Severity | Category | CWE | OWASP |
 |---|---------|----------|----------|-----|-------|
@@ -372,13 +462,13 @@ curl -o results.csv http://localhost:3000/api/export?format=csv
 
 ## 📊 Sample Scan Results
 
-The included `sample-vulnerable-app` contains **26 real vulnerabilities** across 5 files:
+The included `sample-vulnerable-app` contains **31 real vulnerabilities** across 7 scanned files:
 
 | Severity | Count | Examples |
 |----------|-------|---------|
-| **Critical** | 23 | Hardcoded AWS/Stripe keys, SQL injection, command injection, eval() |
-| **High** | 2 | innerHTML XSS |
-| **Medium** | 1 | Debug mode enabled |
+| **Critical** | 18 | Hardcoded AWS/Stripe keys, SQL injection, command injection, eval() |
+| **High** | 9 | XSS, SSRF, sensitive logging, weak randomness |
+| **Medium** | 4 | Debug mode, insecure cookies, broad CORS, missing security headers |
 | **Low** | 0 | — |
 
 **Health Score: 0/100** — the sample app is intentionally insecure for testing.
@@ -391,7 +481,7 @@ The included `sample-vulnerable-app` contains **26 real vulnerabilities** across
 |-------|-----------|---------|
 | **Scanner** | Pure JavaScript (regex-based) | — |
 | **Backend** | Node.js + Express.js | 18+ / 4.18 |
-| **Frontend** | React + Vite | 18 / 5.x |
+| **Frontend** | React + Vite | 18 / 8.x |
 | **Styling** | CSS3 (no framework) | — |
 | **File I/O** | Node.js `fs/promises` | — |
 

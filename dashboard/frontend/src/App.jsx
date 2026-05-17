@@ -4,6 +4,7 @@ import VulnerabilityFeed from './components/VulnerabilityFeed';
 import CodeDiffViewer from './components/CodeDiffViewer';
 import HealthScore from './components/HealthScore';
 import FolderBrowser from './components/FolderBrowser';
+import FirewallPanel from './components/FirewallPanel';
 import API_BASE from './api';
 import './App.css';
 
@@ -149,6 +150,14 @@ function App() {
             </div>
           )}
 
+          {scanData?.firewall && (
+            <div className={`sidebar-card firewall-status ${scanData.firewall.status}`}>
+              <div className="card-title">Firewall</div>
+              <div className="firewall-side-action">{scanData.firewall.action}</div>
+              <div className="firewall-side-text">{scanData.firewall.reasons[0] || 'All checks passed'}</div>
+            </div>
+          )}
+
           <div className="sidebar-card">
             <div className="card-title">Filters</div>
             <label className="filter-label">Severity</label>
@@ -184,6 +193,9 @@ function App() {
             <button className={`tab ${activeTab === 'issues' ? 'active' : ''}`} onClick={() => setActiveTab('issues')}>
               Issues {scanData ? `(${scanData.summary.total})` : ''}
             </button>
+            <button className={`tab ${activeTab === 'firewall' ? 'active' : ''}`} onClick={() => setActiveTab('firewall')}>
+              Firewall {scanData?.firewall ? `(${scanData.firewall.action})` : ''}
+            </button>
             <button className={`tab ${activeTab === 'log' ? 'active' : ''}`} onClick={() => setActiveTab('log')}>
               Scan Log {scanLog ? '*' : ''}
             </button>
@@ -211,6 +223,9 @@ function App() {
                   onSelect={setSelectedVuln}
                   filter={filter}
                 />
+              )}
+              {activeTab === 'firewall' && (
+                <FirewallPanel data={scanData} onRescan={runScan} scanning={scanning} />
               )}
               {activeTab === 'log' && (
                 <div className="log-panel">

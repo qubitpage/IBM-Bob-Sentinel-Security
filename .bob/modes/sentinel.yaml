@@ -177,14 +177,24 @@ commands:
 
   - name: "fix"
     slug: "/fix"
-    description: "Apply suggested fixes for detected vulnerabilities"
-    usage: "/fix [vuln-id|all]"
-    action: "apply_fix"
+    description: "Fix vulnerabilities from the latest dashboard fix session or scan report"
+    usage: "/fix [vuln-id|all|latest-session]"
+    action: "apply_fix_session"
     args:
       - name: "target"
         type: "string"
         required: false
-        default: "all"
+        default: "latest-session"
+
+  - name: "publish-guard"
+    slug: "/publish-guard"
+    description: "Run the Bob Sentinel firewall before publishing or pushing to GitHub"
+    usage: "/publish-guard [path...]"
+    action: "run_publish_guard"
+    args:
+      - name: "path"
+        type: "string"
+        required: false
 
   - name: "export"
     slug: "/export"
@@ -219,6 +229,12 @@ tools:
     type: "node_script"
     path: "tools/bob-sentinel/scanner.js"
     fallback_path: "cli/scanner.js"
+  publish_guard:
+    type: "node_script"
+    path: "cli/publish-guard.js"
+  fix_inbox:
+    type: "directory"
+    path: ".bob/inbox"
   dashboard:
     type: "url"
     url: "http://localhost:5173"
@@ -231,16 +247,19 @@ hooks:
     report_in_chat: true
   before_git_push:
     enabled: true
-    action: "run_scanner"
-    block_on_critical: true
-    block_on_high: false
+    action: "run_publish_guard"
+    block_on_firewall: "BLOCK"
+  dashboard_fix_session:
+    enabled: true
+    inbox: ".bob/inbox"
+    action: "apply_fix_session"
 
 chat:
   show_inline_warnings: true
   highlight_vulnerable_code: true
   suggest_fixes: true
   show_health_score: true
-  welcome_message: "🛡️ Bob Sentinel active. Type /scan to scan your code, /help for all commands."
+  welcome_message: "🛡️ Bob Sentinel active. Type /scan to scan, /fix latest-session to apply dashboard fixes, /publish-guard before pushing."
 
 rules:
   scan_patterns:

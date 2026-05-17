@@ -2,10 +2,11 @@
 
 ## 📚 Table of Contents
 1. [Security Scanner](#security-scanner)
-2. [Dashboard Components](#dashboard-components)
-3. [REST API](#rest-api)
-4. [Git Hook Integration](#git-hook-integration)
-5. [Vulnerability Types](#vulnerability-types)
+2. [Code & Secret Firewall](#code--secret-firewall)
+3. [Dashboard Components](#dashboard-components)
+4. [REST API](#rest-api)
+5. [Git Hook Integration](#git-hook-integration)
+6. [Vulnerability Types](#vulnerability-types)
 
 ---
 
@@ -13,6 +14,58 @@
 
 ### Overview
 The security scanner is a real, production-ready tool that analyzes source code for security vulnerabilities using pattern matching and static analysis.
+
+---
+
+## 🧱 Code & Secret Firewall
+
+### Overview
+The firewall is the release gate that sits after scanning. The scanner finds issues; the firewall decides whether the code can pass, needs review, or must be blocked.
+
+**File:** `lib/firewall.js`
+
+### How It Works
+
+1. The CLI scanner writes a full report to `cache/vulnerabilities.json`.
+2. The firewall policy engine evaluates the report.
+3. The decision is attached to the report as `firewall` and exposed through the backend API.
+4. The dashboard Firewall tab shows the decision, failed checks, reasons, affected files, and next steps.
+5. The dashboard can create a Bob fix handoff in `.bob/inbox/`.
+6. The publish guard reruns the firewall before any GitHub push.
+7. The Git pre-push hook blocks when the firewall returns `BLOCK`.
+
+### Decision Logic
+
+| Check | Result |
+|-------|--------|
+| Any critical vulnerability | `BLOCK` |
+| Critical secret leak | `BLOCK` |
+| Critical exploit path | `BLOCK` |
+| Health score below 50/100 | `BLOCK` |
+| High severity findings without a block | `WARN` |
+| Medium findings above threshold | `WARN` |
+| Clean scan | `ALLOW` |
+
+### API
+
+- `GET /api/firewall` returns the latest firewall decision.
+- `GET /api/firewall/policy` returns the active policy.
+- `POST /api/scan` returns scan results with `results.firewall` included.
+- `POST /api/bob/fix-session` writes a Bob fix request from the latest scan.
+- `POST /api/publish/guard` runs the publish firewall from the UI.
+- `POST /api/publish/github` runs the guard, then pushes only when allowed.
+
+### Dashboard To Bob Sync
+
+The Firewall tab has four release actions:
+
+- **Send Fixes to Bob:** writes a redacted, structured fix prompt to `.bob/inbox/`.
+- **Run Publish Guard:** executes `node cli/publish-guard.js` and reports allow/warn/block.
+- **Push to GitHub:** executes the publish guard first, then `git push` only if not blocked.
+- **Rescan:** reruns the scanner so Bob's fixes are checked by the same firewall logic.
+
+### Why It Matters
+This turns Bob Sentinel from a passive report into a pre-flight security firewall: dangerous code and secrets are stopped before they leave the developer machine.
 
 ### How It Works
 
@@ -23,7 +76,7 @@ The security scanner is a real, production-ready tool that analyzes source code 
 const patterns = {
   aws_key: /AKIA[0-9A-Z]{16}/g,
   sql_injection: /(?:execute|query|sql)\s*\(\s*`[^`]*\$\{[^}]+\}[^`]*`/gi,
-  // ... 15+ more patterns
+  // ... 40 total detection rules
 };
 ```
 
@@ -40,7 +93,7 @@ node cli/scanner.js /path/to/project
 ```
 
 #### 2. **Pattern-Based Detection**
-Detects 15+ vulnerability types:
+Detects 40 vulnerability patterns, including:
 - **Secrets**: AWS keys, Stripe keys, API keys, passwords, JWT secrets
 - **Injection**: SQL injection, XSS, command injection, path traversal
 - **Unsafe Code**: eval() usage, weak crypto (MD5)

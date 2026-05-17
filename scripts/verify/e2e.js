@@ -11,6 +11,7 @@ const scannerPath = path.join(root, 'cli/scanner.js');
 const samplePath = path.join(root, 'sample-vulnerable-app');
 const reportPath = path.join(root, 'cache/vulnerabilities.json');
 const backendPath = path.join(root, 'dashboard/backend/server.js');
+const publishGuardPath = path.join(root, 'cli/publish-guard.js');
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -115,8 +116,32 @@ const runCliScan = () => {
   assert(report.summary.critical === 18, `Expected 18 critical vulnerabilities, got ${report.summary.critical}`);
   assert(report.summary.high === 9, `Expected 9 high vulnerabilities, got ${report.summary.high}`);
   assert(report.summary.medium === 4, `Expected 4 medium vulnerabilities, got ${report.summary.medium}`);
+  assert(report.firewall.status === 'blocked', `Expected sample app firewall status blocked, got ${report.firewall.status}`);
+  assert(report.firewall.action === 'BLOCK', `Expected sample app firewall action BLOCK, got ${report.firewall.action}`);
+  assert(report.firewall.checks.length >= 6, 'Firewall report did not include policy checks');
 
   return report;
+};
+
+const runPublishGuardChecks = () => {
+  const production = spawnSync(process.execPath, [publishGuardPath], {
+    cwd: root,
+    encoding: 'utf8',
+    maxBuffer: 1024 * 1024 * 20
+  });
+
+  assert(production.status === 0, `Expected production publish guard to pass, got ${production.status}: ${production.stdout}${production.stderr}`);
+  assert(production.stdout.includes('PUBLISH ALLOWED'), 'Production publish guard did not print PUBLISH ALLOWED');
+
+  const sample = spawnSync(process.execPath, [publishGuardPath, 'sample-vulnerable-app'], {
+    cwd: root,
+    encoding: 'utf8',
+    maxBuffer: 1024 * 1024 * 20
+  });
+
+  assert(sample.status === 1, `Expected sample publish guard to block, got ${sample.status}`);
+  assert(sample.stdout.includes('PUBLISH BLOCKED'), 'Sample publish guard did not print PUBLISH BLOCKED');
+  assert(sample.stdout.includes('firewall BLOCK'), 'Sample publish guard did not report firewall BLOCK');
 };
 
 const runBackendE2E = async () => {
@@ -140,9 +165,36 @@ const runBackendE2E = async () => {
     assert(scan.data.success === true, 'POST /api/scan did not return success true');
     assert(scan.data.results.total_files_scanned === 7, 'API scan did not scan 7 sample files');
     assert(scan.data.results.summary.total === 31, 'API scan did not return 31 sample vulnerabilities');
+    assert(scan.data.results.firewall.status === 'blocked', 'API scan did not return blocked firewall status');
+    assert(scan.data.results.firewall.reasons.length > 0, 'API firewall response did not include reasons');
     assert(scan.data.log.includes('Patterns loaded: 40 detection rules'), 'API scan log did not include pattern count');
     assert(scan.data.log.includes('backend/'), 'API scan log did not include backend traversal');
     assert(scan.data.log.includes('frontend/'), 'API scan log did not include frontend traversal');
+
+    const firewall = await requestJson(`${baseUrl}/api/firewall`);
+    assert(firewall.status === 200, `GET /api/firewall returned ${firewall.status}`);
+    assert(firewall.data.firewall.action === 'BLOCK', 'GET /api/firewall did not return BLOCK action');
+
+    const firewallPolicy = await requestJson(`${baseUrl}/api/firewall/policy`);
+    assert(firewallPolicy.status === 200, `GET /api/firewall/policy returned ${firewallPolicy.status}`);
+    assert(firewallPolicy.data.mode === 'enforce', 'Firewall policy is not in enforce mode');
+
+    const fixSession = await requestJson(`${baseUrl}/api/bob/fix-session`, { method: 'POST', body: {} });
+    assert(fixSession.status === 200, `POST /api/bob/fix-session returned ${fixSession.status}`);
+    assert(fixSession.data.success === true, 'Bob fix session did not return success true');
+    assert(fixSession.data.session.prompt.includes('Bob Sentinel Fix Session'), 'Bob fix session prompt missing heading');
+    assert(fixSession.data.session.files.markdown.includes('.bob/inbox'), 'Bob fix session did not write to .bob/inbox');
+
+    const blockedGuard = await requestJson(`${baseUrl}/api/publish/guard`, {
+      method: 'POST',
+      body: { targets: ['sample-vulnerable-app'] }
+    });
+    assert(blockedGuard.status === 409, `Blocked publish guard returned ${blockedGuard.status}, expected 409`);
+    assert(blockedGuard.data.status === 'blocked', 'Blocked publish guard did not return blocked status');
+
+    const cleanGuard = await requestJson(`${baseUrl}/api/publish/guard`, { method: 'POST', body: {} });
+    assert(cleanGuard.status === 200, `Clean publish guard returned ${cleanGuard.status}`);
+    assert(cleanGuard.data.status === 'allowed', `Clean publish guard returned ${cleanGuard.data.status}, expected allowed`);
 
     const exportResponse = await requestJson(`${baseUrl}/api/export?format=json`);
     assert(exportResponse.status === 200, `GET /api/export returned ${exportResponse.status}`);
@@ -167,12 +219,14 @@ const runBackendE2E = async () => {
   assert(Object.keys(scanner.patterns).length === 40, 'Scanner does not expose exactly 40 detection rules');
 
   const report = runCliScan();
+  runPublishGuardChecks();
   await runBackendE2E();
 
   console.log('PASS Bob Sentinel E2E verification');
   console.log(`Rules: ${Object.keys(scanner.patterns).length}`);
   console.log(`Sample scan: ${report.total_files_scanned} files, ${report.summary.total} issues`);
   console.log(`Severity: ${report.summary.critical} critical, ${report.summary.high} high, ${report.summary.medium} medium, ${report.summary.low} low`);
+  console.log(`Firewall: ${report.firewall.action} (${report.firewall.status})`);
 })().catch((error) => {
   console.error(`FAIL ${error.message}`);
   process.exit(1);

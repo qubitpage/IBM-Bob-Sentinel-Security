@@ -1,82 +1,9 @@
 #!/bin/sh
 #
 # Bob Sentinel — Git Pre-Push Hook
-# Blocks pushes when CRITICAL or HIGH severity vulnerabilities are detected.
+# Blocks pushes when the Bob Sentinel publish firewall returns BLOCK.
 # Install: cp hooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
 #
 
 ROOT="$(git rev-parse --show-toplevel)"
-SCANNER="$ROOT/cli/scanner.js"
-REPORT="$ROOT/cache/vulnerabilities.json"
-
-# Scan production surfaces. The sample app is intentionally vulnerable demo data,
-# so including it would make every push impossible without --no-verify.
-SCAN_TARGETS="cli dashboard/backend dashboard/frontend/src"
-
-echo ""
-echo "╔════════════════════════════════════════════════════════╗"
-echo "║  🛡️  Bob Sentinel — Pre-Push Security Gate            ║"
-echo "╚════════════════════════════════════════════════════════╝"
-echo ""
-
-TOTAL_FILES=0
-TOTAL_VULNS=0
-TOTAL_CRITICAL=0
-TOTAL_HIGH=0
-
-for REL_TARGET in $SCAN_TARGETS; do
-  TARGET="$ROOT/$REL_TARGET"
-  if [ ! -d "$TARGET" ]; then
-    continue
-  fi
-
-  node "$SCANNER" "$TARGET" > /dev/null 2>&1
-
-  if [ ! -f "$REPORT" ]; then
-    echo "Scanner did not produce a report for $REL_TARGET. Allowing push."
-    continue
-  fi
-
-  FILES=$(node -e "const r=require('$REPORT'); console.log(r.total_files_scanned || 0)")
-  TOTAL=$(node -e "const r=require('$REPORT'); console.log(r.summary.total || 0)")
-  CRITICAL=$(node -e "const r=require('$REPORT'); console.log(r.summary.critical || 0)")
-  HIGH=$(node -e "const r=require('$REPORT'); console.log(r.summary.high || 0)")
-  SCORE=$(node -e "const r=require('$REPORT'); console.log(r.summary.health_score)")
-
-  TOTAL_FILES=$((TOTAL_FILES + FILES))
-  TOTAL_VULNS=$((TOTAL_VULNS + TOTAL))
-  TOTAL_CRITICAL=$((TOTAL_CRITICAL + CRITICAL))
-  TOTAL_HIGH=$((TOTAL_HIGH + HIGH))
-
-  echo "  $REL_TARGET: $FILES files, $TOTAL issues, $CRITICAL critical, $HIGH high, score $SCORE/100"
-done
-
-echo ""
-echo "  Files scanned:   $TOTAL_FILES"
-echo "  Vulnerabilities: $TOTAL_VULNS"
-echo "  Critical:        $TOTAL_CRITICAL"
-echo "  High:            $TOTAL_HIGH"
-echo ""
-
-if [ "$TOTAL_CRITICAL" -gt 0 ]; then
-  echo "🚫 PUSH BLOCKED — $TOTAL_CRITICAL critical vulnerabilities detected in production code."
-  echo ""
-  echo "  Run the dashboard to review and fix:"
-  echo "    cd dashboard/backend && npm start"
-  echo "    cd dashboard/frontend && npm run dev"
-  echo ""
-  echo "  Or bypass (not recommended):"
-  echo "    git push --no-verify"
-  echo ""
-  exit 1
-fi
-
-if [ "$TOTAL_HIGH" -gt 0 ]; then
-  echo "⚠️  WARNING — $TOTAL_HIGH high-severity issues found."
-  echo "  Consider fixing before pushing. Allowing push."
-  echo ""
-fi
-
-echo "✓ Security check passed. Pushing..."
-echo ""
-exit 0
+exec node "$ROOT/cli/publish-guard.js"

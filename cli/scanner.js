@@ -7,6 +7,7 @@
 
 const fs = require('fs').promises;
 const path = require('path');
+const { evaluateFirewall } = require('../lib/firewall');
 
 class SecurityScanner {
   constructor() {
@@ -979,7 +980,7 @@ class SecurityScanner {
       typeBreakdown[vuln.type].count++;
     });
 
-    return {
+    const report = {
       scan_timestamp: new Date().toISOString(),
       repository: path.basename(targetPath),
       scan_target: targetPath,
@@ -998,6 +999,9 @@ class SecurityScanner {
         type_breakdown: typeBreakdown
       }
     };
+
+    report.firewall = evaluateFirewall(report);
+    return report;
   }
 }
 
@@ -1070,8 +1074,15 @@ async function main() {
   console.log(`    🟡 Medium:      ${report.summary.medium}`);
   console.log(`    🟢 Low:         ${report.summary.low}`);
   console.log(`  Health Score:     ${report.summary.health_score}/100`);
+  console.log(`  Firewall:         ${report.firewall.action} (${report.firewall.status})`);
   console.log(`  Duration:         ${report.scan_duration_ms}ms`);
   console.log('─'.repeat(60));
+
+  if (report.firewall.reasons.length > 0) {
+    console.log('  Firewall reasons:');
+    report.firewall.reasons.forEach(reason => console.log(`    - ${reason}`));
+    console.log('─'.repeat(60));
+  }
 
   // Category breakdown
   if (Object.keys(report.summary.categories).length > 0) {
@@ -1085,8 +1096,8 @@ async function main() {
   console.log(`  Report saved to: ${outputPath}`);
   console.log();
   
-  if (report.summary.critical > 0) {
-    console.log('⚠️  CRITICAL issues found! Review immediately.');
+  if (report.firewall.enforced) {
+    console.log('🧱 FIREWALL BLOCKED: release gate failed. Review immediately.');
     process.exit(1);
   } else if (report.summary.high > 0) {
     console.log('⚠️  HIGH severity issues found.');
